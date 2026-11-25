@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal TODO App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans">
+
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-10">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-2 text-blue-600 font-bold text-xl">
+                <i class="fa-solid fa-check-double"></i>
+                <span>TaskFlow Personal</span>
+            </div>
+            <div class="flex bg-slate-100 p-1 rounded-lg">
+                <button onclick="switchTab('tasks')" id="tab-tasks" class="px-4 py-2 rounded-md text-sm font-medium bg-white text-blue-600 shadow-sm transition">
+                    <i class="fa-solid fa-list-check mr-1"></i> Công việc
+                </button>
+                <button onclick="switchTab('stats')" id="tab-stats" class="px-4 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-slate-900 transition">
+                    <i class="fa-solid fa-chart-pie mr-1"></i> Thống kê
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-5xl mx-auto px-4 py-8">
+
+        <!-- ==================== TAB 1: QUẢN LÝ TASK ==================== -->
+        <section id="view-tasks">
+            <!-- Header & Nút thêm -->
+            <div class="flex flex-wrap justify-between items-center mb-6 gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900">Danh sách công việc</h1>
+                    <p class="text-sm text-slate-500" id="today-date"></p>
+                </div>
+                <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-medium text-sm flex items-center gap-2 shadow-sm transition">
+                    <i class="fa-solid fa-plus"></i> Thêm Task mới
+                </button>
+            </div>
+
+            <!-- Thanh Search & Filter -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6 grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div class="md:col-span-2 relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+                    <input type="text" id="search-input" oninput="renderTasks()" placeholder="Tìm kiếm tên công việc..." 
+                        class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500">
+                </div>
+                <select id="filter-date" onchange="renderTasks()" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                    <option value="today">📅 Hôm nay</option>
+                    <option value="all">🗂️ Tất cả các ngày</option>
+                </select>
+                <select id="filter-status" onchange="renderTasks()" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                    <option value="all">Trạng thái: Tất cả</option>
+                    <option value="pending">⏳ Chưa hoàn thành</option>
+                    <option value="completed">✅ Đã hoàn thành</option>
+                </select>
+            </div>
+
+            <!-- Danh sách Task -->
+            <div id="task-list" class="space-y-3"></div>
+        </section>
+
+        <!-- ==================== TAB 2: THỐNG KÊ ==================== -->
+        <section id="view-stats" class="hidden">
+            <div class="mb-6">
+                <h1 class="text-2xl font-bold text-slate-900">Thống kê hiệu suất</h1>
+                <p class="text-sm text-slate-500">Tổng hợp dữ liệu công việc cá nhân và dữ liệu mẫu trong tuần</p>
+            </div>
+
+            <!-- 4 Thẻ KPI -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs font-medium text-slate-500 uppercase">Tổng số Task</p>
+                    <p class="text-2xl font-bold text-slate-900 mt-1" id="stat-total">0</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs font-medium text-emerald-600 uppercase">Đã hoàn thành</p>
+                    <p class="text-2xl font-bold text-emerald-600 mt-1" id="stat-completed">0</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs font-medium text-amber-600 uppercase">Đang thực hiện</p>
+                    <p class="text-2xl font-bold text-amber-600 mt-1" id="stat-pending">0</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs font-medium text-blue-600 uppercase">Tỷ lệ hoàn thành</p>
+                    <p class="text-2xl font-bold text-blue-600 mt-1" id="stat-rate">0%</p>
+                </div>
+            </div>
+
+            <!-- Biểu đồ -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 class="font-semibold text-slate-800 mb-4">Tỷ lệ trạng thái công việc</h3>
+                    <div class="h-64 flex justify-center">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 class="font-semibold text-slate-800 mb-4">Số task hoàn thành trong tuần (Mock Data)</h3>
+                    <div class="h-64">
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ==================== MODAL THÊM / SỬA TASK ==================== -->
+    <div id="task-modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50 px-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="modal-title" class="text-lg font-bold">Thêm công việc mới</h2>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="task-form" onsubmit="saveTask(event)" class="space-y-4">
+                <input type="hidden" id="task-id">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Tên công việc *</label>
+                    <input type="text" id="task-title" required placeholder="VD: Hoàn thành bài tập Node.js"
+                        class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Ngày thực hiện</label>
+                        <input type="date" id="task-date" required
+                            class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Mức độ ưu tiên</label>
+                        <select id="task-priority" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                            <option value="high">🔴 Cao</option>
+                            <option value="medium" selected>🟡 Trung bình</option>
+                            <option value="low">🟢 Thấp</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Ghi chú</label>
+                    <textarea id="task-note" rows="2" placeholder="Chi tiết công việc..."
+                        class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"></textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Hủy</button>
+                    <button type="submit" class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">Lưu Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById('today-date').innerText = `Hôm nay: ${new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}`;
+
+        let tasks = [];
+        let statusChartInstance = null;
+        let weeklyChartInstance = null;
+
+        // Tải dữ liệu từ Database qua API
+        async function fetchTasks() {
+            const res = await fetch('/api/tasks');
+            tasks = await res.json();
+            renderTasks();
+        }
+
+        // Chuyển đổi Tab
+        function switchTab(tab) {
+            const viewTasks = document.getElementById('view-tasks');
+            const viewStats = document.getElementById('view-stats');
+            const btnTasks = document.getElementById('tab-tasks');
+            const btnStats = document.getElementById('tab-stats');
+
+            if (tab === 'tasks') {
+                viewTasks.classList.remove('hidden');
+                viewStats.classList.add('hidden');
+                btnTasks.className = 'px-4 py-2 rounded-md text-sm font-medium bg-white text-blue-600 shadow-sm transition';
+                btnStats.className = 'px-4 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-slate-900 transition';
+            } else {
+                viewTasks.classList.add('hidden');
+                viewStats.classList.remove('hidden');
+                btnStats.className = 'px-4 py-2 rounded-md text-sm font-medium bg-white text-blue-600 shadow-sm transition';
+                btnTasks.className = 'px-4 py-2 rounded-md text-sm font-medium text-slate-600 hover:text-slate-900 transition';
+                renderStats();
+            }
+        }
+
+        // Render danh sách Task (có Search & Filter)
+        function renderTasks() {
+            const keyword = document.getElementById('search-input').value.toLowerCase();
+            const dateFilter = document.getElementById('filter-date').value;
+            const statusFilter = document.getElementById('filter-status').value;
+            const listEl = document.getElementById('task-list');
+
+            const filtered = tasks.filter(t => {
+                const matchKeyword = t.title.toLowerCase().includes(keyword) || (t.note && t.note.toLowerCase().includes(keyword));
+                const matchDate = dateFilter === 'all' ? true : t.date === todayStr;
+                const matchStatus = statusFilter === 'all' ? true : (statusFilter === 'completed' ? t.completed : !t.completed);
+                return matchKeyword && matchDate && matchStatus;
+            });
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<div class="bg-white border border-dashed border-slate-300 rounded-xl p-10 text-center text-slate-400">Không tìm thấy công việc nào phù hợp.</div>`;
+                return;
+            }
+
+            const priorityBadge = {
+                high: '<span class="bg-red-50 text-red-600 text-xs px-2.5 py-0.5 rounded-full font-medium">Cao</span>',
+                medium: '<span class="bg-amber-50 text-amber-600 text-xs px-2.5 py-0.5 rounded-full font-medium">Trung bình</span>',
+                low: '<span class="bg-emerald-50 text-emerald-600 text-xs px-2.5 py-0.5 rounded-full font-medium">Thấp</span>'
+            };
+
+            listEl.innerHTML = filtered.map(task => `
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between gap-4 hover:border-blue-300 transition">
+                    <div class="flex items-start gap-3.5">
+                        <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleComplete(${task.id})"
+                            class="mt-1 w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="font-semibold ${task.completed ? 'line-through text-slate-400' : 'text-slate-800'}">${task.title}</span>
+                                ${priorityBadge[task.priority]}
+                                <span class="text-xs text-slate-400"><i class="fa-regular fa-calendar mr-1"></i>${task.date}</span>
+                            </div>
+                            ${task.note ? `<p class="text-sm text-slate-500 mt-1">${task.note}</p>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button onclick="openModal(${task.id})" title="Sửa" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <button onclick="deleteTask(${task.id})" title="Xóa" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Tick hoàn thành -> Gọi API PUT cập nhật Database
+        async function toggleComplete(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+            await fetch(`/api/tasks/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...task, completed: !task.completed })
+            });
+            fetchTasks();
+        }
+
+        // Xóa task -> Gọi API DELETE xóa trong Database
+        async function deleteTask(id) {
+            if (confirm('Bạn có chắc muốn xóa task này khỏi Database?')) {
+                await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+                fetchTasks();
+            }
+        }
+
+        function openModal(id = null) {
+            const modal = document.getElementById('task-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            if (id) {
+                const t = tasks.find(item => item.id === id);
+                document.getElementById('modal-title').innerText = 'Chỉnh sửa công việc';
+                document.getElementById('task-id').value = t.id;
+                document.getElementById('task-title').value = t.title;
+                document.getElementById('task-date').value = t.date;
+                document.getElementById('task-priority').value = t.priority;
+                document.getElementById('task-note').value = t.note || '';
+            } else {
+                document.getElementById('modal-title').innerText = 'Thêm công việc mới';
+                document.getElementById('task-form').reset();
+                document.getElementById('task-id').value = '';
+                document.getElementById('task-date').value = todayStr;
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('task-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // Lưu task (Thêm mới POST hoặc Sửa PUT xuống Database)
+        async function saveTask(e) {
+            e.preventDefault();
+            const id = document.getElementById('task-id').value;
+            const title = document.getElementById('task-title').value.trim();
+            const date = document.getElementById('task-date').value;
+            const priority = document.getElementById('task-priority').value;
+            const note = document.getElementById('task-note').value.trim();
+
+            if (id) {
+                const existing = tasks.find(t => t.id == id);
+                await fetch(`/api/tasks/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, date, priority, note, completed: existing.completed })
+                });
+            } else {
+                await fetch('/api/tasks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, date, priority, note })
+                });
+            }
+
+            closeModal();
+            fetchTasks();
+        }
+
+        // Render Thống kê & Biểu đồ
+        function renderStats() {
+            const total = tasks.length;
+            const completed = tasks.filter(t => t.completed).length;
+            const pending = total - completed;
+            const rate = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-completed').innerText = completed;
+            document.getElementById('stat-pending').innerText = pending;
+            document.getElementById('stat-rate').innerText = `${rate}%`;
+
+            if (statusChartInstance) statusChartInstance.destroy();
+            if (weeklyChartInstance) weeklyChartInstance.destroy();
+
+            statusChartInstance = new Chart(document.getElementById('statusChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Đã hoàn thành', 'Chưa hoàn thành'],
+                    datasets: [{
+                        data: [completed, pending],
+                        backgroundColor: ['#10b981', '#f59e0b'],
+                        borderWidth: 0
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            weeklyChartInstance = new Chart(document.getElementById('weeklyChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'],
+                    datasets: [{
+                        label: 'Task hoàn thành',
+                        data: [4, 6, 5, 8, 7, 3, completed],
+                        backgroundColor: '#2563eb',
+                        borderRadius: 6
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        // Gọi API lấy dữ liệu từ Database ngay khi mở trang
+        fetchTasks();
+    </script>
+</body>
+</html>
